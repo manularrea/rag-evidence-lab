@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- LangChain RetrievalQA exporter recipe, synthetic fixture, and CLI walkthrough
+  (`examples/recipes`). Source IDs are sanitized to the cases schema; citations
+  are never invented.
+
 ## 0.1.0 — 2026-09-30
 
 - Offline citation and numeric-literal checks for exported RAG answers.

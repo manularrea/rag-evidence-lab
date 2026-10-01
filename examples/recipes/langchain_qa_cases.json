@@ -1,0 +1,37 @@
+{
+  "cases": [
+    {
+      "id": "policy-grounded",
+      "question": "What is the refund window?",
+      "answer": "Refunds are available within 30 days of purchase [policy-md].",
+      "sources": [
+        {
+          "id": "policy-md",
+          "text": "Refunds are available within 30 days of purchase. Contact support with your order number."
+        }
+      ]
+    },
+    {
+      "id": "policy-drift",
+      "question": "What is the refund window?",
+      "answer": "Refunds are available within 90 days of purchase [policy-md].",
+      "sources": [
+        {
+          "id": "policy-md",
+          "text": "Refunds are available within 30 days of purchase. Contact support with your order number."
+        }
+      ]
+    },
+    {
+      "id": "hours-uncited",
+      "question": "Is support available on weekends?",
+      "answer": "Support operates every day including weekends.",
+      "sources": [
+        {
+          "id": "hours-md",
+          "text": "Support operates Monday through Friday from 9 to 17."
+        }
+      ]
+    }
+  ]
+}
