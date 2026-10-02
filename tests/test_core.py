@@ -15,6 +15,27 @@ class EvidenceTests(unittest.TestCase):
         self.assertIn("unmatched_number", claim["flags"])
         self.assertGreater(claim["lexical_overlap"], .45)
 
+    def test_numeric_formatting_normalization(self):
+        cases = [
+            ("Count is 1,000 [p].", "Count is 1000.", []),
+            ("Count is 1 000 [p].", "Count is 1000.", []),
+            ("Amount is 1,000.50 [p].", "Amount is 1000.5.", []),
+            ("Cantidad: 1.000 [p].", "Cantidad: 1000.", []),
+            ("Importe: 1.000,50 [p].", "Importe: 1000,50.", []),
+            ("Tasa: 1,5 [p].", "Tasa: 1.5.", []),
+            ("Tasa: 1,5 [p].", "Tasa: 15.", ["1,5"]),
+            ("Rate is 30% [p].", "Rate is 30.", ["30%"]),
+            ("Rate is 30 % [p].", "Rate is 30%.", []),
+            ("Count is 1,000 [p].", "Count is 1.0.", ["1,000"]),
+            ("Value is 0.125 [p].", "Value is 125.", ["0.125"]),
+            ("Value is 0,125 [p].", "Value is 125.", ["0,125"]),
+            ("Value is 1.234 [p].", "Value is 1.2340.", ["1.234"]),
+        ]
+        for answer, source, expected in cases:
+            with self.subTest(answer=answer, source=source):
+                claim = inspect(fixture(answer, source))["cases"][0]["claims"][0]
+                self.assertEqual(claim["unmatched_numbers"], expected)
+
     def test_unknown_citation(self):
         self.assertIn("unknown_citation", inspect(fixture("Refunds [wrong]."))["cases"][0]["claims"][0]["flags"])
 
