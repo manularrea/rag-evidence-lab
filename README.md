@@ -96,10 +96,14 @@ The package is not published on PyPI. Editable installation may download the set
 |---|---|---|
 | `missing_citation` | No `[source-id]` in the claim | Whether the claim is false |
 | `unknown_citation` | A citation ID is absent from retrieved sources | Whether another document supports it |
-| `unmatched_number` | A numeric literal is absent from the eligible evidence | Whether the number is wrong, derived, or formatted differently |
+| `unmatched_number` | A normalized numeric value is absent from the eligible evidence | Whether the number is wrong, derived, or uses the same textual unit |
 | `low_lexical_overlap` | Few claim tokens occur in the best matching source | Whether a paraphrase is unsupported |
 
 Claims are split at newlines and simple sentence boundaries. Tokens are lowercased with a small English/Spanish stopword list. Lexical overlap is the fraction of distinct claim tokens found in a source. With citations, only cited known sources are eligible; without citations, all retrieved sources are considered, while the missing-citation flag remains.
+
+Numeric comparison normalizes a conservative set of common English/Spanish presentations. Three-digit groups separated by comma, period, ordinary space, non-breaking space, or narrow non-breaking space are treated as thousands groups. When both comma and period occur, the rightmost separator is treated as the decimal mark only when the other separator forms valid three-digit groups. A single comma or period followed by exactly three digits is treated as a thousands separator only when the leading group has one to three digits and is not zero; leading-zero forms such as `0.125` and `0,125` remain fractional. Ambiguous non-zero forms keep the grouping rule, so `1.234` is treated as `1234`, while `1.2340` remains decimal. Under these assumptions, `1,000`, `1.000`, `1 000`, and `1000` compare equal, while `1,5` compares with `1.5` and not with `15`. A percent sign remains part of the normalized value, so `30%` does not match `30`.
+
+This is deliberately not a full locale or unit parser. Textual units and currencies, scientific notation, malformed grouping, and conventions outside the assumptions above can still produce noisy numeric results.
 
 **A report with zero flags is not proof of truth.** Negation, conflicting evidence, time scope, units, calculations, and semantically wrong but lexically similar statements can pass these checks. The test suite includes an explicit negation false negative. Abbreviations, lists, citation placement, multilingual paraphrases, and number formatting can produce noisy results. No accuracy claim is made for production datasets.
 

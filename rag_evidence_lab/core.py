@@ -8,8 +8,68 @@ def tokens(text):
     return {t for t in re.findall(r"[^\W_]+", text.lower()) if t not in STOP and len(t) > 1}
 
 
+NUMBER_LITERAL_RE = re.compile(
+    r"(?<!\w)(?:\d{1,3}(?:[ \u00A0\u202F]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)*)(?:\s*%)?(?!\w)"
+)
+
+
+def _canonical_number(integer, fraction=None, percent=False):
+    integer = integer.lstrip("0") or "0"
+    if fraction is not None:
+        fraction = fraction.rstrip("0")
+    value = integer if not fraction else f"{integer}.{fraction}"
+    return value + ("%" if percent else "")
+
+
+def normalize_number_literal(raw):
+    compact = raw.strip().replace("\u00A0", " ").replace("\u202F", " ")
+    compact = re.sub(r"\s+", "", compact)
+    percent = compact.endswith("%")
+    if percent:
+        compact = compact[:-1]
+
+    if "," in compact and "." in compact:
+        decimal_separator = "," if compact.rfind(",") > compact.rfind(".") else "."
+        grouping_separator = "." if decimal_separator == "," else ","
+        integer, fraction = compact.rsplit(decimal_separator, 1)
+        groups = integer.split(grouping_separator)
+        valid_grouping = (
+            groups[0].isdigit()
+            and 1 <= len(groups[0]) <= 3
+            and all(group.isdigit() and len(group) == 3 for group in groups[1:])
+            and fraction.isdigit()
+        )
+        if valid_grouping:
+            return _canonical_number("".join(groups), fraction, percent)
+        return raw.strip().replace(" ", "")
+
+    separator = "," if "," in compact else "." if "." in compact else None
+    if separator is not None:
+        parts = compact.split(separator)
+        if all(part.isdigit() for part in parts):
+            if len(parts) > 2:
+                if 1 <= len(parts[0]) <= 3 and all(len(part) == 3 for part in parts[1:]):
+                    return _canonical_number("".join(parts), percent=percent)
+                return raw.strip().replace(" ", "")
+            integer, fraction = parts
+            if integer != "0" and 1 <= len(integer) <= 3 and len(fraction) == 3:
+                return _canonical_number(integer + fraction, percent=percent)
+            return _canonical_number(integer, fraction, percent)
+
+    if compact.isdigit():
+        return _canonical_number(compact, percent=percent)
+    return raw.strip().replace(" ", "")
+
+
+def number_literals(text):
+    return [
+        (match.group(0).strip(), normalize_number_literal(match.group(0)))
+        for match in NUMBER_LITERAL_RE.finditer(text)
+    ]
+
+
 def numbers(text):
-    return set(re.findall(r"(?<!\w)\d+(?:[.,]\d+)*%?(?!\w)", text))
+    return {normalized for _, normalized in number_literals(text)}
 
 
 def validate(data):
@@ -61,7 +121,11 @@ def inspect_case(case, threshold=0.45):
             flags.append("unknown_citation")
         if best[0] < threshold:
             flags.append("low_lexical_overlap")
-        absent = sorted(numbers(text) - numbers(evidence))
+        evidence_numbers = numbers(evidence)
+        absent = sorted({
+            raw for raw, normalized in number_literals(text)
+            if normalized not in evidence_numbers
+        })
         if absent:
             flags.append("unmatched_number")
         claims.append({"text": text, "citations": refs, "best_source": best[1],
