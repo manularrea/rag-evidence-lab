@@ -52,8 +52,10 @@ def normalize_number_literal(raw):
                     return _canonical_number("".join(parts), percent=percent)
                 return raw.strip().replace(" ", "")
             integer, fraction = parts
-            if integer != "0" and 1 <= len(integer) <= 3 and len(fraction) == 3:
-                return _canonical_number(integer + fraction, percent=percent)
+            if integer.strip("0") and 1 <= len(integer) <= 3 and len(fraction) == 3:
+                # Without locale evidence this could be a decimal or a grouped integer.
+                # Keep a tagged literal: an untagged key would also match 1.2340.
+                return "ambiguous:" + compact + ("%" if percent else "")
             return _canonical_number(integer, fraction, percent)
 
     if compact.isdigit():

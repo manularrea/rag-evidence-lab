@@ -17,10 +17,10 @@ class EvidenceTests(unittest.TestCase):
 
     def test_numeric_formatting_normalization(self):
         cases = [
-            ("Count is 1,000 [p].", "Count is 1000.", []),
+            ("Count is 1,000 [p].", "Count is 1000.", ["1,000"]),
             ("Count is 1 000 [p].", "Count is 1000.", []),
             ("Amount is 1,000.50 [p].", "Amount is 1000.5.", []),
-            ("Cantidad: 1.000 [p].", "Cantidad: 1000.", []),
+            ("Cantidad: 1.000 [p].", "Cantidad: 1000.", ["1.000"]),
             ("Importe: 1.000,50 [p].", "Importe: 1000,50.", []),
             ("Tasa: 1,5 [p].", "Tasa: 1.5.", []),
             ("Tasa: 1,5 [p].", "Tasa: 15.", ["1,5"]),
