@@ -56,12 +56,19 @@ def document_text(doc: dict) -> str:
         text = doc["page_content"].get("text") or doc["page_content"].get("page_content")
         if isinstance(text, str) and text.strip():
             return text
-    raise ValueError("each source document needs non-empty page_content text")
+    raise ValueError("page_content: expected non-empty text")
 
 
 def _add_source(doc: dict, index: int, seen: set, sources: list) -> None:
     if not isinstance(doc, dict):
         raise ValueError("source document must be an object")
+    meta = doc.get("metadata")
+    if meta is not None:
+        if not isinstance(meta, dict):
+            raise ValueError("metadata: expected an object")
+        for key in ("id", "source", "filename"):
+            if key in meta and not isinstance(meta[key], str):
+                raise ValueError(f"metadata.{key}: expected a string")
     sid = source_id(doc, index)
     if sid in seen:
         raise ValueError(
@@ -74,18 +81,25 @@ def _add_source(doc: dict, index: int, seen: set, sources: list) -> None:
 
 def convert_record(record: dict, index: int) -> dict:
     if not isinstance(record, dict):
-        raise ValueError("each LangChain record must be an object")
+        raise ValueError(f"record {index + 1}: expected an object")
     question = record.get("query") or record.get("question") or ""
-    answer = record.get("result") or record.get("answer") or record.get("output_text")
+    answer_key = next((key for key in ("result", "answer", "output_text") if key in record), "result")
+    answer = record.get(answer_key)
     if not isinstance(answer, str) or not answer.strip():
-        raise ValueError("record is missing a non-empty answer/result")
-    raw_docs = record.get("source_documents") or record.get("context") or []
+        raise ValueError(f"record {index + 1}.{answer_key}: expected a non-empty string")
+    docs_key = "source_documents" if "source_documents" in record else "context"
+    if docs_key not in record:
+        docs_key = "source_documents"
+    raw_docs = record.get(docs_key)
     if not isinstance(raw_docs, list) or not raw_docs:
-        raise ValueError("record is missing source_documents")
+        raise ValueError(f"record {index + 1}.{docs_key}: expected a non-empty list")
     sources = []
     seen = set()
     for i, doc in enumerate(raw_docs):
-        _add_source(doc, i, seen, sources)
+        try:
+            _add_source(doc, i, seen, sources)
+        except ValueError as exc:
+            raise ValueError(f"record {index + 1}.{docs_key}[{i}].{exc}") from None
     case_id = record.get("id")
     if not isinstance(case_id, str) or not case_id.strip():
         case_id = f"langchain-{index + 1}"
@@ -116,8 +130,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     src = Path(args[0])
     dest = Path(args[1]) if len(args) > 1 else None
-    data = json.loads(src.read_text(encoding="utf-8"))
-    cases = convert(data)
+    try:
+        data = json.loads(src.read_text(encoding="utf-8"))
+        cases = convert(data)
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     text = json.dumps(cases, ensure_ascii=False, indent=2) + "\n"
     if dest:
         dest.write_text(text, encoding="utf-8")
