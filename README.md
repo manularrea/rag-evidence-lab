@@ -72,6 +72,8 @@ Use `[source-id]` citations inline, **before the sentence-ending punctuation**. 
 python -m rag_evidence_lab my-run.json --threshold 0.45 --html review.html
 ```
 
+Using LangChain? The [RetrievalQA exporter recipe](examples/recipes/README.md) converts `query` / `result` / `source_documents` exports into this format without importing LangChain.
+
 Already inside Python?
 
 ```python
@@ -124,7 +126,7 @@ python -m rag_evidence_lab baseline-run.json --json baseline.json
 python -m rag_evidence_lab candidate-run.json --baseline baseline.json --json candidate.json
 ```
 
-Both runs must use the same case IDs and overlap threshold. A case regresses when its **number of flagged claims increases**. This is a count-based signal: changed claims or failure types may go undetected when counts stay equal. Keep questions, sources and claim structure comparable when interpreting the result. It is not a quality score.
+Both runs must use the same case IDs and overlap threshold. A case regresses when its **number of flagged claims increases**. This is a count-based signal: changed claims or failure types may go undetected when counts stay equal. Keep questions, sources and claim structure comparable when interpreting the result. It is not a quality score. Generate both reports with the same inspector version: upgrades can change flag counts (see the [changelog](CHANGELOG.md)).
 
 | Exit code | Meaning |
 |---|---|
