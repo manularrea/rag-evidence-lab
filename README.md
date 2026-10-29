@@ -96,10 +96,16 @@ The package is not published on PyPI. Editable installation may download the set
 |---|---|---|
 | `missing_citation` | No `[source-id]` in the claim | Whether the claim is false |
 | `unknown_citation` | A citation ID is absent from retrieved sources | Whether another document supports it |
-| `unmatched_number` | A numeric literal is absent from the eligible evidence | Whether the number is wrong, derived, or formatted differently |
+| `unmatched_number` | A normalized numeric value or conservative literal is absent from the eligible evidence | Whether the number is wrong, derived, or uses the same textual unit |
 | `low_lexical_overlap` | Few claim tokens occur in the best matching source | Whether a paraphrase is unsupported |
 
 Claims are split at newlines and simple sentence boundaries. Tokens are lowercased with a small English/Spanish stopword list. Lexical overlap is the fraction of distinct claim tokens found in a source. With citations, only cited known sources are eligible; without citations, all retrieved sources are considered, while the missing-citation flag remains.
+
+Numeric comparison normalizes a bounded set of common English/Spanish presentations. Valid three-digit groups separated by ordinary space, non-breaking space, or narrow non-breaking space are treated as thousands groups. Repeated comma or period groups such as `1,234,567` and `1.234.567` also normalize. When both comma and period occur, the rightmost separator is treated as the decimal mark only when the other separator forms valid three-digit groups. Thus `1 000` matches `1000`, and `1,000.50` matches `1.000,50`.
+
+A single comma or period followed by exactly three digits, with a non-zero leading group of one to three digits, is **ambiguous**. Without locale evidence, `1.234`, `1,234`, `1,000`, and `1.000` are compared as tagged literals rather than silently interpreted as thousands or decimals. The same spelling can match itself, but `1.234` does not match either `1234` or `1.2340`; those cases remain flagged for review. This intentionally allows more formatting warnings instead of hiding a possible value mismatch. All-zero leading groups, including `0.125`, `0,125`, and `00.125`, remain fractional. Unambiguous `1,5` matches `1.5`, not `15`. A percent sign remains part of the comparison, so `30%` does not match `30`, while `30 %` matches `30%`. Reports preserve the original unmatched spelling.
+
+This is deliberately not a full locale or unit parser. Textual units and currencies, scientific notation, malformed grouping, and conventions outside the assumptions above can still produce noisy numeric results.
 
 **A report with zero flags is not proof of truth.** Negation, conflicting evidence, time scope, units, calculations, and semantically wrong but lexically similar statements can pass these checks. The test suite includes an explicit negation false negative. Abbreviations, lists, citation placement, multilingual paraphrases, and number formatting can produce noisy results. No accuracy claim is made for production datasets.
 
