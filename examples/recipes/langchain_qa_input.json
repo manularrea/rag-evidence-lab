@@ -1,0 +1,39 @@
+{
+  "framework": "langchain",
+  "tested_version": "0.3.14 (document shape only; langchain is not imported)",
+  "records": [
+    {
+      "id": "policy-grounded",
+      "query": "What is the refund window?",
+      "result": "Refunds are available within 30 days of purchase [policy-md].",
+      "source_documents": [
+        {
+          "page_content": "Refunds are available within 30 days of purchase. Contact support with your order number.",
+          "metadata": {"source": "docs/policy.md", "id": "policy.md"}
+        }
+      ]
+    },
+    {
+      "id": "policy-drift",
+      "query": "What is the refund window?",
+      "result": "Refunds are available within 90 days of purchase [policy-md].",
+      "source_documents": [
+        {
+          "page_content": "Refunds are available within 30 days of purchase. Contact support with your order number.",
+          "metadata": {"source": "docs/policy.md"}
+        }
+      ]
+    },
+    {
+      "id": "hours-uncited",
+      "query": "Is support available on weekends?",
+      "result": "Support operates every day including weekends.",
+      "source_documents": [
+        {
+          "page_content": "Support operates Monday through Friday from 9 to 17.",
+          "metadata": {"source": "hours.md"}
+        }
+      ]
+    }
+  ]
+}
