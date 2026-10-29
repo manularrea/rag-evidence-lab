@@ -26,6 +26,14 @@ version. The recipe does not call a model.
 - The recipe **does not invent** `[source]` markers when the model answer
   omitted them. Those cases are expected to receive `missing_citation`.
 
+### Invalid input
+
+The converter rejects malformed records with a `ValueError` identifying the
+record (counting from 1) and field, including the document index (counting from
+0). Provided metadata IDs must be strings. An invalid primary field is rejected
+rather than silently replaced with an alias. The CLI prints the diagnostic to
+stderr and exits with code 2 without replacing the output file.
+
 ### Convert and inspect
 
 ```bash

@@ -1,5 +1,8 @@
+import copy
 import importlib.util
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -97,6 +100,61 @@ class LangChainRecipeTests(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             convert(payload)
         self.assertIn("duplicate source ID", str(ctx.exception))
+
+    def test_malformed_records_name_the_record_and_field(self):
+        valid = {"result": "answer", "source_documents": [
+            {"page_content": "synthetic source", "metadata": {"id": "a"}}
+        ]}
+        malformed = [
+            ({"source_documents": valid["source_documents"]}, "result"),
+            ({"result": 12, "source_documents": valid["source_documents"]}, "result"),
+            ({"result": "answer", "source_documents": {}}, "source_documents"),
+            ({"result": "answer", "source_documents": []}, "source_documents"),
+            ({"result": "answer", "source_documents": [{"metadata": {}}]}, "source_documents[0].page_content"),
+            ({"result": "answer", "source_documents": ["text"]}, "source_documents[0]"),
+        ]
+        for key in ("id", "source", "filename"):
+            for value in (12, False, None, []):
+                bad = copy.deepcopy(valid)
+                bad["source_documents"][0]["metadata"][key] = value
+                malformed.append((bad, f"source_documents[0].metadata.{key}"))
+        for value in ("metadata", ["a"]):
+            bad = copy.deepcopy(valid)
+            bad["source_documents"][0]["metadata"] = value
+            malformed.append((bad, "source_documents[0].metadata"))
+        for bad, field in malformed:
+            with self.subTest(field=field, record=bad):
+                with self.assertRaises(ValueError) as ctx:
+                    convert([valid, bad])
+                self.assertIn("record 2", str(ctx.exception))
+                self.assertIn(field, str(ctx.exception))
+                with tempfile.TemporaryDirectory() as tmp:
+                    src, dest = Path(tmp) / "input.json", Path(tmp) / "cases.json"
+                    src.write_text(json.dumps([valid, bad]), encoding="utf-8")
+                    dest.write_text("keep existing output", encoding="utf-8")
+                    result = subprocess.run(
+                        [sys.executable, str(ROOT / "examples/recipes/langchain_qa.py"), str(src), str(dest)],
+                        capture_output=True, text=True, encoding="utf-8",
+                    )
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(result.stdout, "")
+                    self.assertIn(str(ctx.exception), result.stderr)
+                    self.assertNotIn("Traceback", result.stderr)
+                    self.assertEqual(dest.read_text(encoding="utf-8"), "keep existing output")
+
+    def test_invalid_primary_fields_do_not_fall_back_silently(self):
+        for record, field in [
+            ({"result": [], "answer": "fallback", "source_documents": [{"page_content": "text"}]}, "result"),
+            ({"result": "answer", "source_documents": {}, "context": [{"page_content": "text"}]}, "source_documents"),
+        ]:
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, field):
+                convert(record)
+
+    def test_valid_aliases_and_nested_document_text_still_work(self):
+        result = convert({"answer": "answer", "context": [
+            {"page_content": {"text": "source"}, "metadata": None}
+        ]})
+        self.assertEqual(result["cases"][0]["sources"], [{"id": "doc-1", "text": "source"}])
 
     def test_recipe_does_not_import_langchain(self):
         import sys
