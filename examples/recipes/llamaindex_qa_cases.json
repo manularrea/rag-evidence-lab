@@ -1,0 +1,37 @@
+{
+  "cases": [
+    {
+      "id": "loan-grounded",
+      "question": "How long can a patron borrow a book?",
+      "answer": "Books may be borrowed for 21 days [_loans].",
+      "sources": [
+        {
+          "id": "_loans",
+          "text": "Books may be borrowed for 21 days."
+        }
+      ]
+    },
+    {
+      "id": "loan-drift",
+      "question": "How long can a patron borrow a book?",
+      "answer": "Books may be borrowed for 28 days [loans-md].",
+      "sources": [
+        {
+          "id": "loans-md",
+          "text": "Books may be borrowed for 21 days."
+        }
+      ]
+    },
+    {
+      "id": "loan-uncited",
+      "question": "How long can a patron borrow a book?",
+      "answer": "Books may be borrowed for 21 days.",
+      "sources": [
+        {
+          "id": "_loans",
+          "text": "Books may be borrowed for 21 days."
+        }
+      ]
+    }
+  ]
+}

@@ -48,3 +48,28 @@ Expected CLI flags on the checked-in fixture:
 it only if you add cases.
 
 No credentials or remote model execution are required.
+
+## LlamaIndex query-engine response
+
+This recipe uses a synthetic JSON export of a non-streaming text response.
+Each record contains `response` and `source_nodes`, where each source pairs
+`node.text` and optional `node.metadata` with an optional retrieval `score`.
+Include `question` and a case `id` in the export if available. Retrieval scores
+are ignored because the cases schema records source text and IDs.
+
+Source IDs follow the [citation formatting rules](#citation-formatting)
+above. A collision raises an error, and citations in the response remain
+exactly as provided. Tests exercise the documented shape without importing
+LlamaIndex or running a model.
+
+```bash
+python examples/recipes/llamaindex_qa.py \
+  examples/recipes/llamaindex_qa_input.json \
+  examples/recipes/llamaindex_qa_cases.json
+
+python -m rag_evidence_lab examples/recipes/llamaindex_qa_cases.json --max-flagged 2
+```
+
+The checked-in example contains one grounded answer, one answer with
+`unmatched_number`, and one with `missing_citation`. With a budget of one
+flagged claim, the inspector exits with status 1.
